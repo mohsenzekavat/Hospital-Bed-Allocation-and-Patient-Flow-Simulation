@@ -92,6 +92,76 @@ class Patient:
         subtypes = DISEASES[self.disease]["subtypes"]
         self.subtype = np.random.choice(subtypes)
 
+    def generate_vital_signs(self):
+        """
+        Generates physical symptoms (vital signs) adjusted for the patient's age group.
+        Uses Normal (Gaussian) distributions to represent human biometrics.
+        """
+        # 1. Temperature (°C)
+        # Justification: Core temperature is relatively stable across all ages.
+        # Mean 37.0, SD 0.8 allows for standard variance and fever spikes.
+        self.vital_signs["temperature"] = np.random.normal(loc=37.0, scale=0.8)
+
+        # 2. Heart Rate (BPM) & 3. Systolic Blood Pressure (mmHg)
+        if self.age_group == "0-18":
+            # Justification: Children have naturally faster resting heart rates and
+            # naturally lower blood pressure than adults.
+            self.vital_signs["heart_rate"] = np.random.normal(loc=95.0, scale=15.0)
+            self.vital_signs["systolic_bp"] = np.random.normal(loc=105.0, scale=15.0)
+
+        elif self.age_group in ["19-35", "36-55"]:
+            # Justification: Standard healthy adult baselines.
+            self.vital_signs["heart_rate"] = np.random.normal(loc=80.0, scale=15.0)
+            self.vital_signs["systolic_bp"] = np.random.normal(loc=120.0, scale=15.0)
+
+        else:  # "56-75" and "76+"
+            # Justification: Older patients have a much higher statistical probability
+            # of hypertension (high BP) and a wider variance in heart health.
+            self.vital_signs["heart_rate"] = np.random.normal(loc=75.0, scale=20.0)
+            self.vital_signs["systolic_bp"] = np.random.normal(loc=135.0, scale=25.0)
+
+    def calculate_triage_scores(self):
+        """
+        Computes the severity score, priority level, and evaluation time
+        based on the patient's clinical and demographic data.
+        """
+        # 1. Base Disease Severity
+        base_sev = DISEASES[self.disease]["base_severity"]
+
+        # 2. Subtype Severity Modifier (Addressing the nuance!)
+        # Justification: A 'Mild' or 'Early' subtype should reduce the overall severity,
+        # while 'Severe' or 'Compound' subtypes require a higher urgency bump.
+        subtype_modifiers = {
+            "Mild": -1, "Hairline Fracture": -1, "Early Stage": -1, "Non-displaced": -1,
+            "Moderate": 0, "Simple Fracture": 0, "Displaced": 0, "Acute": 0,
+            "Severe": 2, "Compound Fracture": 2, "Comminuted": 2, "Perforated": 2
+        }
+        # Fetch the modifier for the patient's specific subtype (defaults to 0 if not found)
+        subtype_sev = subtype_modifiers.get(self.subtype, 0)
+
+        # 3. Vital Sign Penalty
+        vital_penalty = 0
+        if self.vital_signs["temperature"] > 38.0 or self.vital_signs["temperature"] < 36.0:
+            vital_penalty += 1  # Fever or hypothermia
+
+        if self.vital_signs["systolic_bp"] > 140.0 or self.vital_signs["systolic_bp"] < 90.0:
+            vital_penalty += 1  # Hyper/hypotension
+
+        # 4. Age-Related Risk Factor
+        age_risk = 1 if self.age_group in ["0-18", "76+"] else 0
+
+        # --- Final Severity Score Calculation ---
+        self.severity_score = base_sev + subtype_sev + vital_penalty + age_risk
+
+        # --- Priority Level Calculation ---
+        # 60% importance to the immediate clinical severity, 40% to the demographic age-priority.
+        age_prio = AGE_GROUPS[self.age_group]["priority"]
+        self.priority_level = (self.severity_score * 0.6) + (age_prio * 0.4)
+
+        # --- Triage Time Generation ---
+        # Standard triage evaluation: 5 to 15 minutes (converted to hours).
+        self.triage_time = np.random.uniform(5 / 60, 15 / 60)
+
 
 def generate_interarrival_time():
     """
