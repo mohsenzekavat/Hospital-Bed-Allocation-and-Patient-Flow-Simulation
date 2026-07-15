@@ -162,6 +162,31 @@ class Patient:
         # Standard triage evaluation: 5 to 15 minutes (converted to hours).
         self.triage_time = np.random.uniform(5 / 60, 15 / 60)
 
+    def to_dict(self, scenario_name="Baseline", replication_id=1):
+        """
+        Exports the patient's data as a dictionary for the final CSV log.
+        Includes scenario and replication IDs for Master Table tracking.
+        """
+        return {
+            "scenario": scenario_name,
+            "replication": replication_id,
+            "patient_id": self.patient_id,
+            "arrival_time": self.arrival_time,
+            "age_group": self.age_group,
+            "disease": self.disease,
+            "subtype": self.subtype,
+            "severity_score": self.severity_score,
+            "priority_level": self.priority_level,
+            "status": self.status,
+            "bed_number": self.bed_number,
+            "queue_entry_time": self.queue_entry_time,
+            "admission_time": self.admission_time,
+            "discharge_time": self.discharge_time,
+            "wait_to_bed": self.wait_to_bed,
+            "total_time_in_system": self.total_time_in_system,
+            "rejection_reason": self.rejection_reason
+        }
+
 
 def generate_interarrival_time():
     """
