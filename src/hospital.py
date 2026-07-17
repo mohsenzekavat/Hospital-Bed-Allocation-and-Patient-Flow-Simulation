@@ -7,30 +7,23 @@ class Hospital:
     Manages the global state of the hospital simulation, including the clock,
     resources (beds), and the waiting queue.
     """
-    def __init__(self):
+    def __init__(self, bed_capacity=10, queue_capacity=5):
         # --- Simulation Clock & Horizon ---
         self.clock = 0.0
         # The simulation horizon is 30 days, measured in hours (30 * 24 = 720 hours)
         self.horizon = 720.0
 
         # --- Capacity Constraints ---
-        # The hospital has exactly 10 inpatient beds
-        self.bed_capacity = 10
+        # The hospital now uses whatever numbers are passed in, defaulting to Baseline!
+        self.bed_capacity = bed_capacity
+        self.queue_capacity = queue_capacity
 
-        # We use a list of 10 slots to represent the physical beds.
-        # 'None' means the bed is empty. When occupied, it will hold a Patient object.
-        # This makes it easy to assign a specific 'bed_number' (index 0 to 9).
+        # We build the exact right number of empty beds immediately based on the parameter
         self.beds = [None] * self.bed_capacity
 
-        # The queue can hold a maximum of 5 patients
-        self.queue_capacity = 5
-
-        # We use a standard list for the queue. Using a list's .append() and .pop(0)
-        # methods will perfectly mimic the required First-In-First-Out (FIFO) logic.
         self.queue = []
 
         # --- Data Collection Tracking ---
-        # These lists will store the dictionaries for every generated patient and hourly snapshot
         self.patient_log = []
         self.hourly_log = []
 
@@ -134,7 +127,7 @@ class Hospital:
 
         return max(1.0, round(final_duration))
 
-    def process_discharges_and_admissions(self):
+    def process_discharges_and_admissions(self, use_priority_queue=False):
         """
         Checks beds for patients who have finished treatment, discharges them,
         and immediately pulls the next eligible patient from the front of the queue.
@@ -155,7 +148,14 @@ class Hospital:
             # --- 2. Pull from Queue Logic ---
             # If the bed is currently empty AND there are people waiting
             if self.beds[i] is None and len(self.queue) > 0:
-                # FIFO: .pop(0) removes and returns the first person in the line
+
+                # --- NEW: SCENARIO 2 PRIORITY QUEUE LOGIC ---
+                if use_priority_queue:
+                    # Sort the queue by priority level (Highest number moves to index 0)
+                    self.queue.sort(key=lambda p: p.priority_level, reverse=True)
+                # --------------------------------------------
+
+                # FIFO (or Priority-First): .pop(0) removes and returns the first person in the line
                 next_patient = self.queue.pop(0)
 
                 # Admit them to this newly freed bed
